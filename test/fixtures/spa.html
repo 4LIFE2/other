@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>SPA Fixture</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 480px; margin: 40px auto; padding: 0 16px; }
+    nav button { margin-right: 8px; padding: 6px 10px; }
+    .view { margin-top: 18px; padding: 12px; background: #f4f4f4; border-radius: 6px; }
+  </style>
+</head>
+<body>
+  <h1>Tiny SPA</h1>
+  <nav>
+    <button id="go-home" data-testid="go-home">Home</button>
+    <button id="go-list" data-testid="go-list">List</button>
+    <button id="go-detail" data-testid="go-detail">Detail</button>
+    <button id="replace-state" data-testid="replace-state">Replace state</button>
+  </nav>
+  <div id="view" class="view">home</div>
+  <script>
+    function render() {
+      const path = location.pathname.replace(/^\/+/, '') || 'home';
+      document.getElementById('view').textContent = path + (location.hash ? ' ' + location.hash : '');
+    }
+    function nav(path) {
+      history.pushState({}, '', '/' + path);
+      render();
+    }
+    document.getElementById('go-home').onclick   = () => nav('home');
+    document.getElementById('go-list').onclick   = () => nav('list');
+    document.getElementById('go-detail').onclick = () => nav('detail/42');
+    document.getElementById('replace-state').onclick = () => {
+      history.replaceState({}, '', '/replaced');
+      render();
+    };
+    window.addEventListener('popstate', render);
+    render();
+  </script>
+</body>
+</html>

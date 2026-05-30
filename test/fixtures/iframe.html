@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Iframe Fixture</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 600px; margin: 40px auto; padding: 0 16px; }
+    iframe { width: 100%; height: 220px; border: 1px solid #ccc; border-radius: 6px; }
+  </style>
+</head>
+<body>
+  <h1>Outer page</h1>
+  <p>Action below happens inside the iframe; framePath should target the iframe element.</p>
+  <iframe id="payment-iframe" name="pay" data-testid="payment-frame"
+          srcdoc='
+            <!doctype html>
+            <html><body style="font-family:system-ui;padding:16px">
+              <h2>Inner frame</h2>
+              <button id="inner-btn" data-testid="inner-btn">Click me</button>
+              <input id="inner-input" name="inner" type="text" placeholder="type here">
+            </body></html>'>
+  </iframe>
+</body>
+</html>

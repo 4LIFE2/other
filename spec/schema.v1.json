@@ -1,0 +1,359 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://interaction-recorder/schema.v1.json",
+  "title": "Interaction Recorder Session",
+  "description": "v1.0.0 — covers both raw (.rec.json) and compiled (.cr.json) recordings",
+  "type": "object",
+  "required": ["schemaVersion", "id", "createdAt", "startUrl", "actions"],
+  "properties": {
+    "schemaVersion": { "type": "string", "const": "1.0.0" },
+    "id": { "type": "string", "pattern": "^sess_" },
+    "name": { "type": "string" },
+    "description": { "type": "string" },
+    "createdAt": { "type": "integer" },
+    "endedAt": { "type": ["integer", "null"] },
+    "startUrl": { "type": "string", "format": "uri" },
+    "userAgent": { "type": "string" },
+    "viewport": {
+      "type": "object",
+      "properties": {
+        "width": { "type": "integer", "minimum": 0 },
+        "height": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "tabId": { "type": "integer" },
+    "parameters": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/parameter" }
+    },
+    "loops": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/loop" }
+    },
+    "extractions": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/extraction" }
+    },
+    "actions": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/action" }
+    },
+    "config": { "type": "object" }
+  },
+  "definitions": {
+    "selectorAlternative": {
+      "type": "object",
+      "required": ["kind", "value"],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": ["testid", "id", "name", "aria", "roleText", "css", "xpath"]
+        },
+        "value": { "type": "string" }
+      }
+    },
+    "selectorBundle": {
+      "type": "object",
+      "required": ["primary", "alternatives"],
+      "properties": {
+        "primary": { "type": ["string", "null"] },
+        "alternatives": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/selectorAlternative" }
+        },
+        "xpath": { "type": ["string", "null"] },
+        "textContent": { "type": "string" },
+        "accessibleName": { "type": "string" },
+        "tagName": { "type": ["string", "null"] },
+        "attributes": {
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        }
+      }
+    },
+    "elementSnapshot": {
+      "type": "object",
+      "properties": {
+        "tagName": { "type": ["string", "null"] },
+        "type": { "type": ["string", "null"] },
+        "innerText": { "type": "string" },
+        "boundingRect": {
+          "type": "object",
+          "properties": {
+            "x": { "type": "number" },
+            "y": { "type": "number" },
+            "width": { "type": "number" },
+            "height": { "type": "number" }
+          }
+        },
+        "isVisible": { "type": "boolean" },
+        "computedRole": { "type": ["string", "null"] },
+        "isContentEditable": { "type": "boolean" },
+        "valueSnapshot": { "type": ["string", "null"] }
+      }
+    },
+    "waitObservations": {
+      "type": "object",
+      "properties": {
+        "msSinceLastAction": { "type": ["integer", "null"] },
+        "msSinceLastMutation": { "type": ["integer", "null"] },
+        "domMutationsObservedSinceLastAction": { "type": "integer" },
+        "pendingNetworkRequests": { "type": "integer" },
+        "msSinceLastNetworkActivity": { "type": ["integer", "null"] },
+        "wasNetworkIdle": { "type": "boolean" },
+        "wasDomStable": { "type": "boolean" }
+      }
+    },
+    "waitPolicy": {
+      "type": "object",
+      "properties": {
+        "preNavigation": {
+          "type": "object",
+          "properties": {
+            "waitForUrlPattern": { "type": ["string", "null"] },
+            "timeoutMs": { "type": "integer" }
+          }
+        },
+        "preTarget": {
+          "type": "object",
+          "properties": {
+            "waitForSelector": { "type": "boolean" },
+            "requireUnique": { "type": "boolean" },
+            "timeoutMs": { "type": "integer" }
+          }
+        },
+        "preStability": {
+          "type": "object",
+          "properties": {
+            "domStable": { "type": "boolean" },
+            "domStableMs": { "type": "integer" },
+            "networkIdle": { "type": "boolean" },
+            "networkIdleMs": { "type": "integer" }
+          }
+        },
+        "postAction": {
+          "type": "object",
+          "properties": {
+            "waitForSelector": {
+              "oneOf": [
+                { "type": "null" },
+                { "$ref": "#/definitions/selectorBundle" }
+              ]
+            },
+            "waitForUrlChange": { "type": "boolean" },
+            "waitForDownload": { "type": "boolean" },
+            "minDelayMs": { "type": "integer" },
+            "timeoutMs": { "type": "integer" }
+          }
+        },
+        "retries": {
+          "type": "object",
+          "properties": {
+            "max": { "type": "integer", "minimum": 0 },
+            "backoffMs": {
+              "type": "array",
+              "items": { "type": "integer" }
+            },
+            "onTotalFailure": {
+              "type": "string",
+              "enum": ["fail", "skip", "prompt"]
+            }
+          }
+        }
+      }
+    },
+    "condition": {
+      "type": "object",
+      "required": ["type", "ifFalse"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["selectorExists", "selectorMissing", "urlMatches", "textPresent", "previousActionStatus"]
+        },
+        "selector": { "$ref": "#/definitions/selectorBundle" },
+        "urlPattern": { "type": "string" },
+        "text": { "type": "string" },
+        "previousActionId": { "type": "string" },
+        "expectedStatus": {
+          "type": "string",
+          "enum": ["success", "failed", "skipped"]
+        },
+        "ifFalse": {
+          "type": "string",
+          "enum": ["skip", "abort"]
+        }
+      }
+    },
+    "action": {
+      "type": "object",
+      "required": ["id", "type", "timestamp", "url", "frameId"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^act_" },
+        "type": {
+          "type": "string",
+          "enum": [
+            "click", "dblclick", "input", "change", "submit", "keydown",
+            "navigation:committed", "navigation:spa", "frame:ready",
+            "download:started", "extract", "wait", "assert"
+          ]
+        },
+        "timestamp": { "type": "integer" },
+        "url": { "type": "string" },
+        "title": { "type": "string" },
+        "frameId": { "type": "integer" },
+        "framePath": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/selectorBundle" }
+        },
+        "selectors": {
+          "oneOf": [
+            { "type": "null" },
+            { "$ref": "#/definitions/selectorBundle" }
+          ]
+        },
+        "element": {
+          "oneOf": [
+            { "type": "null" },
+            { "$ref": "#/definitions/elementSnapshot" }
+          ]
+        },
+        "waitBefore": { "$ref": "#/definitions/waitObservations" },
+        "waitPolicy": { "$ref": "#/definitions/waitPolicy" },
+        "condition": { "$ref": "#/definitions/condition" },
+        "loopRef": { "type": ["string", "null"] },
+        "parameterRefs": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "annotations": {
+          "type": "object",
+          "properties": {
+            "label": { "type": "string" },
+            "comment": { "type": "string" }
+          }
+        },
+        "value": { "type": ["string", "number", "boolean", "null"] },
+        "button": { "type": "integer" },
+        "modifiers": {
+          "type": "object",
+          "properties": {
+            "ctrl": { "type": "boolean" },
+            "shift": { "type": "boolean" },
+            "alt": { "type": "boolean" },
+            "meta": { "type": "boolean" }
+          }
+        },
+        "key": { "type": "string" },
+        "inputType": { "type": ["string", "null"] },
+        "transitionType": { "type": "string" },
+        "newUrl": { "type": "string" },
+        "downloadInfo": {
+          "type": "object",
+          "properties": {
+            "filename": { "type": "string" },
+            "url": { "type": "string" },
+            "mimeType": { "type": "string" },
+            "bytesTotal": { "type": "integer" }
+          }
+        },
+        "extractConfig": {
+          "type": "object",
+          "properties": {
+            "extract": {
+              "type": "string",
+              "enum": ["text", "innerHTML", "value", "boundingRect"],
+              "description": "or attribute:<name>"
+            },
+            "storeAs": { "type": "string" },
+            "missingPolicy": {
+              "type": "string",
+              "enum": ["null", "skip-iteration", "fail"]
+            }
+          }
+        },
+        "waitConfig": {
+          "type": "object",
+          "properties": {
+            "durationMs": { "type": "integer" },
+            "untilSelector": { "$ref": "#/definitions/selectorBundle" },
+            "untilUrlPattern": { "type": "string" },
+            "timeoutMs": { "type": "integer" }
+          }
+        },
+        "assertConfig": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": ["selectorExists", "selectorMissing", "textPresent", "urlMatches", "valueEquals"]
+            },
+            "selector": { "$ref": "#/definitions/selectorBundle" },
+            "expected": { "type": ["string", "number", "boolean", "null"] },
+            "onFail": {
+              "type": "string",
+              "enum": ["fail", "warn"]
+            }
+          }
+        }
+      }
+    },
+    "parameter": {
+      "type": "object",
+      "required": ["name", "type", "source"],
+      "properties": {
+        "name": { "type": "string", "pattern": "^[a-zA-Z_][a-zA-Z0-9_]*$" },
+        "type": {
+          "type": "string",
+          "enum": ["string", "number", "boolean", "array<string>", "array<number>"]
+        },
+        "source": {
+          "type": "string",
+          "enum": ["input", "csv", "json", "env", "extraction"]
+        },
+        "sourceConfig": {
+          "type": "object",
+          "properties": {
+            "promptLabel": { "type": "string" },
+            "default": {},
+            "secret": { "type": "boolean" },
+            "extractionRef": { "type": "string" }
+          }
+        },
+        "description": { "type": "string" }
+      }
+    },
+    "loop": {
+      "type": "object",
+      "required": ["id", "iterates", "itemAlias", "startActionId", "endActionId"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^loop_" },
+        "name": { "type": "string" },
+        "iterates": { "type": "string" },
+        "itemAlias": { "type": "string" },
+        "indexAlias": { "type": "string" },
+        "startActionId": { "type": "string" },
+        "endActionId": { "type": "string" },
+        "onError": {
+          "type": "string",
+          "enum": ["continue", "abort", "retry-once"]
+        }
+      }
+    },
+    "extraction": {
+      "type": "object",
+      "required": ["id", "actionId", "name", "extract", "storeAs"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^ext_" },
+        "actionId": { "type": "string" },
+        "name": { "type": "string" },
+        "selectors": { "$ref": "#/definitions/selectorBundle" },
+        "extract": { "type": "string" },
+        "storeAs": { "type": "string" },
+        "missingPolicy": {
+          "type": "string",
+          "enum": ["null", "skip-iteration", "fail"]
+        }
+      }
+    }
+  }
+}
